@@ -10,8 +10,8 @@ The powershell script is responsible for making the necessary API calls, stitchi
 #### KnowBe4LogPull.ps1
 * Line 3: Enter your API auth token inside the double quotes
 * Line 9: If you intend to push the data to an Elastic Stack instance, enter the ingest folder path (or UNC path if accessible).
-* Line 70 (Optional):  The script is configured to only pull campaigns from the last 30 days.  If you'd like to adjust this period, change line 70 where it says -30, to however many days you want to go back.  NOT RECOMMENDED:  You can remove this line to collect all campaigns from the beginning of time (or as far back as KnowBe4 allows you).  However, repeatedly doing this will only increase resource usage and record processing.
-In addition, Lines 5, 7, and 12 can be modified to make the script unattended.
+* Line 70 (Optional):  The script is configured to only pull campaigns from the last 30 days.  If you'd like to adjust this period, change line 70 where it says `-30`, to however many days you want to go back.  NOT RECOMMENDED:  You can remove this line to collect all campaigns from the beginning of time (or as far back as KnowBe4 allows you).  However, repeatedly doing this will only increase resource usage and record processing.
+* Lines 5, 7, and 12 can be modified to make the script unattended.
 
 #### knowbe4pipeline.yml
 * Line 4:  Enter ingest folder path leaving `/*.log` at the end.
