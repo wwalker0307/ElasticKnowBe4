@@ -1,0 +1,144 @@
+input {
+  file {
+    id => "File Ingest"
+    path => "/Ingest/KnowBe4/*.log"
+    mode => "read"
+    file_chunk_size => 65536
+    discover_interval => 5
+  }
+}
+filter {
+  json {
+    id => "JSON Parse"
+    source => "message"
+  }
+  mutate {
+    id => "String Conversion"
+    convert => {
+    "[user][groups]" => "string"
+    "[campaign][difficulty]" => "string"
+    }
+  }
+  mutate {
+    id => "Value Translation"
+    gsub => [
+      "[user][groups]", "", "",
+      "[user][groups]", "", "",
+      "[user][groups]", "[0-9]*", "",
+      "[campaign][target_groups]", "", "",
+      "[campaign][target_groups]", "", "",
+      "[campaign][target_groups]", "[0-9]*", "",
+      "[campaign][difficulty]", "1", "very easy",
+      "[campaign][difficulty]", "2", "easy",
+      "[campaign][difficulty]", "3", "average",
+      "[campaign][difficulty]", "4", "hard",
+      "[campaign][difficulty]", "5", "very hard",
+      "[campaign][name]", "^[0-9]+?\s|^\s", ""
+    ]
+  }
+  ruby {
+    id => "Remove empty string value"
+    code => 'event.set("[user][groups]", event.get("[user][groups]").reject { |x| x.empty? })'
+  }
+  if [results][attachment_opened] or [results][clicked] or [results][data_entered] or [results][exploited] or [results][macro_enabled] or [results][replied] or [results][vulnerable_plugins] {
+    mutate {
+      add_field => {
+        "[results][result]" => "fail"
+      }
+    }
+    if [results][attachment_opened] {
+      mutate {
+        add_field => {
+          "[results][fail_reason]" => "attachment"
+        }
+      }
+    }
+    if [results][clicked] {
+      mutate {
+        add_field => {
+          "[results][fail_reason]" => "clicked"
+        }
+      }
+    }
+    if [results][data_entered] {
+      mutate {
+        add_field => {
+          "[results][fail_reason]" => "data_entered"
+        }
+      }
+    }
+    if [results][exploited] {
+      mutate {
+        add_field => {
+          "[results][fail_reason]" => "exploited"
+        }
+      }
+    }
+    if [results][macro_enabled] {
+      mutate {
+        add_field => {
+          "[results][fail_reason]" => "macro_enabled"
+        }
+      }
+    }
+    if [results][replied] {
+      mutate {
+        add_field => {
+          "[results][fail_reason]" => "replied"
+        }
+      }
+    }
+    if [results][vulnerable_plugins] {
+      mutate {
+        add_field => {
+          "[results][fail_reason]" => "vulnerable_plugins"
+        }
+      }
+    }
+  } else {
+    mutate {
+      add_field => {
+        "[results][result]" => "pass"
+      }
+    }
+  }
+  date {
+    id => "Date Conversion"
+    match => ["[campaign][create_date]", "yyyy-MM-dd'T'HH:mm:ss"]
+  }
+  geoip {
+    id => "User IP Geolocation"
+    source => "[user][ip]"
+    fields => [city_name,country_name,latitude,longitude ]
+    add_field => {
+      "[geoip][coordinates]" => "%{[geoip][latitude]}, %{[geoip][longitude]}"
+    }
+  }
+  fingerprint {
+    id => "Duplicate Protection"
+    concatenate_sources => true
+    source => [ "[campaign][create_date]", "[campaign][email_template][id]", "[campaign][email_template][name]", "[user][first]", "[user][last]" ]
+    target => "[@metadata][fingerprint]"
+    method => "MURMUR3"
+  }
+  mutate {
+    id => "Field Cleanup"
+    remove_field => [
+      "host",
+      "path",
+      "message",
+      "[campaign][create_date]"
+    ]
+  }
+}
+output {
+  elasticsearch {
+    id => "Send to Elastic"
+    document_id => "%{[@metadata][fingerprint]}"
+    template_overwrite => true
+    template => "/templates/knowbe4template.json"
+    template_name => "knowbe4"
+    hosts => [":"]
+    index => "knowbe4-%{+YYYY.MM.dd}"
+  }
+}
