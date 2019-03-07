@@ -50,6 +50,7 @@ $uepage = [Math]::Truncate($Account.number_of_seats/250)+1
 For($i=1;$i -le $uepage; $i++) {
   Write-Progress -Activity "Collecting User Info..." -Status "Page $i" -PercentComplete ($i/$uepage*100)
   $users += Invoke-RestMethod @auth -Uri "$Base/v1/users?per_page=250&page=$i"
+  #KnowBe4 rate limits their API to 1 request per second, do not remove the following line.
   Start-Sleep -Seconds 1
 }
 
@@ -80,6 +81,7 @@ Foreach ($Camp in $PCam) {
     Write-Progress -Activity "Collecting campaign results..." -Status "Page $i" -PercentComplete ($i/$phepage*100)
     $uri = "$Base/v1/phishing/security_tests/"+$Camp.psts.pst_id+"/recipients?per_page=250&page=$i"
     $PRes += Invoke-RestMethod @auth -Uri $uri
+    #KnowBe4 rate limits their API to 1 request per second, do not remove the following line.
     Start-Sleep -Seconds 1
   }
 #Associate user with phishing campaign results
